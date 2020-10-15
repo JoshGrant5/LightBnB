@@ -107,23 +107,23 @@ const getAllProperties = function(options, limit = 10) {
     queryString += `WHERE city LIKE $${queryParams.length} `;
   } 
   if (options.owner_id) {
-    queryParams.push(Number(options.owner_id));
+    queryParams.push(options.owner_id);
     filters++;
     filters > 1 ? queryString += `AND owner_id = $${queryParams.length} ` : queryString += `WHERE owner_id = $${queryParams.length} `;
   }
   if (options.minimum_price_per_night) {
-    queryParams.push(Number(options.minimum_price_per_night));
+    queryParams.push(options.minimum_price_per_night);
     filters++;
     filters > 1 ? queryString += `AND cost_per_night >= $${queryParams.length} ` : queryString += `WHERE cost_per_night >= $${queryParams.length} `;
   }
   if (options.maximum_price_per_night) {
-    queryParams.push(Number(options.maximum_price_per_night));
+    queryParams.push(options.maximum_price_per_night);
     filters++;
     filters > 1 ? queryString += `AND cost_per_night <= $${queryParams.length} ` : queryString += `WHERE cost_per_night <= $${queryParams.length} `;
   }
 
   if (options.minimum_rating) {
-    queryParams.push(Number(options.minimum_rating));
+    queryParams.push(options.minimum_rating);
     filters++;
     queryString += `
     GROUP BY properties.id
@@ -139,7 +139,8 @@ const getAllProperties = function(options, limit = 10) {
     `;
   }
 
-  console.log(queryString, queryParams);
+  console.log(queryString);
+  console.log(queryParams)
 
   return pool.query(queryString, queryParams)
   .then(res => res.rows);
@@ -153,9 +154,16 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  const propertyValues = [];
+  for (let info in property) {
+    propertyValues.push(property[info]);
+  }
+
+  return pool.query(`
+  INSERT INTO properties (title, description, number_of_bedrooms, number_of_bathrooms, parking_spaces, cost_per_night, thumbnail_photo_url, cover_photo_url, street, country, city, province, post_code, owner_id)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+  RETURNING *;
+  `, propertyValues)
+  .then(res => res.rows[0]);
 }
 exports.addProperty = addProperty;
